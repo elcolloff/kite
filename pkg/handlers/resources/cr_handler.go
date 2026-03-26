@@ -420,6 +420,81 @@ func (h *CRHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Custom resource deleted successfully"})
 }
 
+func (h *CRHandler) Patch(c *gin.Context) {
+	crdName := c.Param("crd")
+	name := c.Param("name")
+
+	if crdName == "" || name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "CRD name and resource name are required"})
+		return
+	}
+
+	cs := c.MustGet("cluster").(*cluster.ClientSet)
+	ctx := c.Request.Context()
+
+	crd, err := h.getCRDByName(ctx, cs.K8sClient, crdName)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "CustomResourceDefinition not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	gvr := h.getGVRFromCRD(crd)
+	cr := &unstructured.Unstructured{}
+	cr.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   gvr.Group,
+		Version: gvr.Version,
+		Kind:    crd.Spec.Names.Kind,
+	})
+
+	namespacedName := types.NamespacedName{Name: name}
+	if crd.Spec.Scope == apiextensionsv1.NamespaceScoped {
+		namespace := c.Param("namespace")
+		if namespace == "_all" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "This custom resource is namespace-scoped, use /:crd/:namespace/:name endpoint"})
+			return
+		}
+		if namespace == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "namespace is required for namespaced custom resources"})
+			return
+		}
+		namespacedName.Namespace = namespace
+	}
+
+	if err := cs.K8sClient.Get(ctx, namespacedName, cr); err != nil {
+		if errors.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Custom resource not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	patchBytes, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read patch data"})
+		return
+	}
+
+	patchType := types.MergePatchType
+	switch c.Query("patchType") {
+	case "json":
+		patchType = types.JSONPatchType
+	case "merge", "":
+		patchType = types.MergePatchType
+	}
+
+	if err := cs.K8sClient.Patch(ctx, cr, client.RawPatch(patchType, patchBytes)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, cr)
+}
+
 func (h *CRHandler) Describe(c *gin.Context) {
 	crdName := c.Param("crd")
 	name := c.Param("name")

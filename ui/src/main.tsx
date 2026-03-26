@@ -1,8 +1,11 @@
-import { StrictMode } from 'react'
+import * as React from 'react'
+import * as ReactJsxRuntime from 'react/jsx-runtime'
 import { loader } from '@monaco-editor/react'
+import * as ReactQuery from '@tanstack/react-query'
 import * as monaco from 'monaco-editor'
-import { createRoot } from 'react-dom/client'
-import { RouterProvider } from 'react-router-dom'
+import * as ReactDOM from 'react-dom'
+import * as ReactDOMClient from 'react-dom/client'
+import * as ReactRouterDom from 'react-router-dom'
 
 import './index.css'
 import './i18n'
@@ -13,6 +16,7 @@ import { AppearanceProvider } from './components/appearance-provider'
 import { AuthProvider } from './contexts/auth-context'
 import { SidebarConfigProvider } from './contexts/sidebar-config-context'
 import { QueryProvider } from './lib/query-provider'
+import { PluginRuntimeProvider } from './plugins/runtime-context'
 import { router } from './routes'
 
 self.MonacoEnvironment = {
@@ -23,8 +27,17 @@ self.MonacoEnvironment = {
 
 loader.config({ monaco })
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+window.__KITE_PLUGIN_SHARED__ = {
+  react: React,
+  reactJsxRuntime: ReactJsxRuntime,
+  reactDom: ReactDOM,
+  reactDomClient: ReactDOMClient,
+  reactRouterDom: ReactRouterDom,
+  reactQuery: ReactQuery,
+}
+
+ReactDOMClient.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
     <QueryProvider>
       <AppearanceProvider
         defaultTheme="system"
@@ -32,11 +45,13 @@ createRoot(document.getElementById('root')!).render(
         defaultFont="maple"
       >
         <AuthProvider>
-          <SidebarConfigProvider>
-            <RouterProvider router={router} />
-          </SidebarConfigProvider>
+          <PluginRuntimeProvider>
+            <SidebarConfigProvider>
+              <ReactRouterDom.RouterProvider router={router} />
+            </SidebarConfigProvider>
+          </PluginRuntimeProvider>
         </AuthProvider>
       </AppearanceProvider>
     </QueryProvider>
-  </StrictMode>
+  </React.StrictMode>
 )

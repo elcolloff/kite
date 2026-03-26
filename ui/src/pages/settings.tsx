@@ -7,6 +7,7 @@ import { AuditLog } from '@/components/settings/audit-log'
 import { ClusterManagement } from '@/components/settings/cluster-management'
 import { GeneralManagement } from '@/components/settings/general-management'
 import { OAuthProviderManagement } from '@/components/settings/oauth-provider-management'
+import { PluginDebugManagement } from '@/components/settings/plugin-debug-management'
 import { RBACManagement } from '@/components/settings/rbac-management'
 import { TemplateManagement } from '@/components/settings/template-management'
 import { UserManagement } from '@/components/settings/user-management'
@@ -68,6 +69,11 @@ export function SettingsPage() {
             value: 'audit',
             label: t('settings.tabs.audit', 'Audit'),
             content: <AuditLog />,
+          },
+          {
+            value: 'plugins-debug',
+            label: t('settings.tabs.pluginsDebug', 'Plugins Debug'),
+            content: <PluginDebugManagement />,
           },
         ]}
       />

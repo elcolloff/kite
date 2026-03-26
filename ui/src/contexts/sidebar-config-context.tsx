@@ -8,6 +8,10 @@ import {
 } from 'react'
 import * as React from 'react'
 import {
+  RuntimePluginMenuItem,
+  usePluginRuntime,
+} from '@/plugins/runtime-context'
+import {
   Icon,
   IconArrowsHorizontal,
   IconBell,
@@ -145,8 +149,9 @@ const defaultMenus: DefaultMenus = {
       icon: IconShield,
     },
     { titleKey: 'nav.services', url: '/services', icon: IconNetwork },
-    { titleKey: 'nav.gateways', url: '/gateways', icon: IconLoadBalancer },
-    { titleKey: 'nav.httproutes', url: '/httproutes', icon: IconRoute },
+  ],
+  'sidebar.groups.plugin': [
+    // Plugin menus are injected here at runtime.
   ],
   'sidebar.groups.storage': [
     {
@@ -206,8 +211,53 @@ const defaultMenus: DefaultMenus = {
 }
 
 const CURRENT_CONFIG_VERSION = 1
+const pluginGroupIdMap = {
+  plugin: 'sidebar-groups-plugin',
+} as const
 
-const defaultConfigs = (): SidebarConfig => {
+const upsertPluginMenuItem = (
+  group: SidebarGroup,
+  menuItem: RuntimePluginMenuItem
+): SidebarGroup => {
+  if (group.items.find((item) => item.id === menuItem.itemId)) {
+    return group
+  }
+
+  const nextItem: SidebarItem = {
+    id: menuItem.itemId,
+    titleKey: menuItem.title,
+    url: menuItem.url,
+    icon: menuItem.icon,
+    visible: true,
+    pinned: false,
+    order: group.items.length,
+  }
+
+  const nextItems = [...group.items]
+  const targetIndex = menuItem.after
+    ? nextItems.findIndex(
+        (item) => item.id === menuItem.after || item.url === menuItem.after
+      )
+    : -1
+
+  if (targetIndex >= 0) {
+    nextItems.splice(targetIndex + 1, 0, nextItem)
+  } else {
+    nextItems.push(nextItem)
+  }
+
+  return {
+    ...group,
+    items: nextItems.map((item, index) => ({
+      ...item,
+      order: index,
+    })),
+  }
+}
+
+const defaultConfigs = (
+  pluginMenus: RuntimePluginMenuItem[] = []
+): SidebarConfig => {
   const groups: SidebarGroup[] = []
   let groupOrder = 0
 
@@ -236,28 +286,102 @@ const defaultConfigs = (): SidebarConfig => {
     })
   })
 
+  const groupsWithPlugins = pluginMenus.reduce((acc, pluginMenu) => {
+    const targetGroupId = pluginGroupIdMap[pluginMenu.groupId]
+    return acc.map((group) =>
+      group.id === targetGroupId
+        ? upsertPluginMenuItem(group, pluginMenu)
+        : group
+    )
+  }, groups)
+
   return {
     version: CURRENT_CONFIG_VERSION,
-    groups,
+    groups: groupsWithPlugins,
     hiddenItems: [],
     pinnedItems: [],
-    groupOrder: groups.map((g) => g.id),
+    groupOrder: groupsWithPlugins.map((g) => g.id),
     lastUpdated: Date.now(),
+  }
+}
+
+const mergeConfig = (
+  baseConfig: SidebarConfig,
+  existingConfig?: SidebarConfig | null
+): SidebarConfig => {
+  if (!existingConfig) {
+    return baseConfig
+  }
+
+  const existingGroupsById = new Map(
+    existingConfig.groups.map((group) => [group.id, group])
+  )
+
+  const mergedGroups = baseConfig.groups.map((group, groupIndex) => {
+    const existingGroup = existingGroupsById.get(group.id)
+    const existingItemsById = new Map(
+      (existingGroup?.items || []).map((item) => [item.id, item])
+    )
+
+    const mergedItems = group.items.map((item, itemIndex) => {
+      const existingItem = existingItemsById.get(item.id)
+      return {
+        ...item,
+        ...existingItem,
+        order: existingItem?.order ?? itemIndex,
+      }
+    })
+
+    return {
+      ...group,
+      visible: existingGroup?.visible ?? group.visible,
+      collapsed: existingGroup?.collapsed ?? group.collapsed,
+      order: existingGroup?.order ?? groupIndex,
+      items: mergedItems.sort((a, b) => a.order - b.order),
+    }
+  })
+
+  const validGroupIds = new Set(mergedGroups.map((group) => group.id))
+  const validItemIds = new Set(
+    mergedGroups.flatMap((group) => group.items.map((item) => item.id))
+  )
+  const groupOrder = (existingConfig.groupOrder || [])
+    .filter((id) => validGroupIds.has(id))
+    .concat(
+      mergedGroups
+        .map((group) => group.id)
+        .filter((id) => !(existingConfig.groupOrder || []).includes(id))
+    )
+
+  return {
+    ...baseConfig,
+    version: existingConfig.version || baseConfig.version,
+    groups: mergedGroups.sort((a, b) => a.order - b.order),
+    hiddenItems: (existingConfig.hiddenItems || []).filter((id) =>
+      validItemIds.has(id)
+    ),
+    pinnedItems: (existingConfig.pinnedItems || []).filter((id) =>
+      validItemIds.has(id)
+    ),
+    groupOrder,
+    lastUpdated: existingConfig.lastUpdated || baseConfig.lastUpdated,
   }
 }
 
 export const SidebarConfigProvider: React.FC<SidebarConfigProviderProps> = ({
   children,
 }) => {
+  const { pluginMenus } = usePluginRuntime()
   const [config, setConfig] = useState<SidebarConfig | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [hasUpdate, setHasUpdate] = useState(false)
   const { user } = useAuth()
 
   const loadConfig = useCallback(async () => {
+    const baseConfig = defaultConfigs(pluginMenus)
     if (user && user.sidebar_preference && user.sidebar_preference != '') {
       const userConfig = JSON.parse(user.sidebar_preference)
-      setConfig(userConfig)
+      setConfig(mergeConfig(baseConfig, userConfig))
 
       const currentVersion = userConfig.version || 0
       if (currentVersion < CURRENT_CONFIG_VERSION) {
@@ -265,8 +389,8 @@ export const SidebarConfigProvider: React.FC<SidebarConfigProviderProps> = ({
       }
       return
     }
-    setConfig(defaultConfigs())
-  }, [user])
+    setConfig(baseConfig)
+  }, [pluginMenus, user])
 
   const saveConfig = useCallback(
     async (newConfig: SidebarConfig) => {
@@ -518,10 +642,10 @@ export const SidebarConfigProvider: React.FC<SidebarConfigProviderProps> = ({
   )
 
   const resetConfig = useCallback(() => {
-    const newConfig = defaultConfigs()
+    const newConfig = defaultConfigs(pluginMenus)
     saveConfig(newConfig)
     setHasUpdate(false)
-  }, [saveConfig])
+  }, [pluginMenus, saveConfig])
 
   const getIconComponent = useCallback((iconName: string) => {
     return iconMap[iconName as keyof typeof iconMap] || IconBox

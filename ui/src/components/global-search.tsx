@@ -1,12 +1,12 @@
 import { ComponentType, useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useSidebarConfig } from '@/contexts/sidebar-config-context'
+import { usePluginRuntime } from '@/plugins/runtime-context'
 import {
   IconArrowsHorizontal,
   IconBox,
   IconBoxMultiple,
   IconLayoutDashboard,
-  IconLoadBalancer,
   IconLoader,
   IconLock,
   IconMap,
@@ -14,7 +14,6 @@ import {
   IconNetwork,
   IconPlayerPlay,
   IconRocket,
-  IconRoute,
   IconRouter,
   IconServer,
   IconServer2,
@@ -70,8 +69,6 @@ const RESOURCE_CONFIG: Record<
   jobs: { label: 'nav.jobs', icon: IconPlayerPlay },
   ingresses: { label: 'nav.ingresses', icon: IconRouter },
   networkpolicies: { label: 'nav.networkpolicies', icon: IconShield },
-  gateways: { label: 'nav.gateways', icon: IconLoadBalancer },
-  httproutes: { label: 'nav.httproutes', icon: IconRoute },
   daemonsets: {
     label: 'nav.daemonsets',
     icon: IconTopologyBus,
@@ -113,6 +110,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { config, getIconComponent } = useSidebarConfig()
+  const { listDefinitions } = usePluginRuntime()
   const { setTheme, actualTheme } = useAppearance()
   const {
     clusters,
@@ -375,6 +373,26 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
     [navigate, onOpenChange]
   )
 
+  const getResourcePath = useCallback(
+    (result: SearchResult) => {
+      const pluginListDefinition = listDefinitions.find(
+        (definition) =>
+          definition.resource.source === 'builtin' &&
+          definition.resource.resourceType === result.resourceType
+      )
+      if (pluginListDefinition) {
+        const routeBase = `/plugins/${pluginListDefinition.pluginId}/${pluginListDefinition.routerName}`
+        return result.namespace
+          ? `${routeBase}/${result.namespace}/${result.name}`
+          : `${routeBase}/${result.name}`
+      }
+      return result.namespace
+        ? `/${result.resourceType}/${result.namespace}/${result.name}`
+        : `/${result.resourceType}/${result.name}`
+    },
+    [listDefinitions]
+  )
+
   // Clear state when dialog closes
   useEffect(() => {
     if (!open) {
@@ -495,21 +513,29 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
                 }
               >
                 {results.map((result) => {
-                  const config = RESOURCE_CONFIG[result.resourceType] || {
-                    label: result.resourceType,
-                    icon: IconBox, // Default icon if not found
-                  }
-                  const Icon = config.icon
+                  const pluginListDefinition = listDefinitions.find(
+                    (definition) =>
+                      definition.resource.source === 'builtin' &&
+                      definition.resource.resourceType === result.resourceType
+                  )
+                  const config = RESOURCE_CONFIG[result.resourceType]
+                  const Icon = pluginListDefinition
+                    ? (getIconComponent(
+                        pluginListDefinition.menu.icon || 'IconCode'
+                      ) as ComponentType<{ className?: string }>)
+                    : config?.icon || IconBox
+                  const resourceLabel = pluginListDefinition
+                    ? pluginListDefinition.menu.title
+                    : config?.label
+                      ? t(config.label)
+                      : result.resourceType
                   const isFav = isFavorite(result.id)
-                  const path = result.namespace
-                    ? `/${result.resourceType}/${result.namespace}/${result.name}`
-                    : `/${result.resourceType}/${result.name}`
+                  const path = getResourcePath(result)
                   return (
                     <CommandItem
                       key={result.id}
                       value={`${result.name} ${result.namespace || ''} ${result.resourceType} ${
-                        RESOURCE_CONFIG[result.resourceType]?.label ||
-                        result.resourceType
+                        resourceLabel
                       }`}
                       onSelect={() => handleSelect(path)}
                       className="flex items-center gap-3 py-3"
@@ -518,14 +544,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{result.name}</span>
-                          <Badge className="text-xs">
-                            {RESOURCE_CONFIG[result.resourceType]?.label
-                              ? t(
-                                  RESOURCE_CONFIG[result.resourceType]
-                                    .label as string
-                                )
-                              : result.resourceType}
-                          </Badge>
+                          <Badge className="text-xs">{resourceLabel}</Badge>
                         </div>
                         {result.namespace && (
                           <div className="text-xs text-muted-foreground mt-1">

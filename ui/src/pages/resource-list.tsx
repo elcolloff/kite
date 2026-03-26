@@ -1,7 +1,9 @@
-import { useParams } from 'react-router-dom'
+import { usePluginRuntime } from '@/plugins/runtime-context'
+import { Navigate, useParams } from 'react-router-dom'
 
 import { ResourceType } from '@/types/api'
 import { usePageTitle } from '@/hooks/use-page-title'
+import { Card, CardContent } from '@/components/ui/card'
 
 import { ConfigMapListPage } from './configmap-list-page'
 import { CRDListPage } from './crd-list-page'
@@ -9,9 +11,7 @@ import { CronJobListPage } from './cronjob-list-page'
 import { DaemonSetListPage } from './daemonset-list-page'
 import { DeploymentListPage } from './deployment-list-page'
 import { EventListPage } from './event-list-page'
-import { GatewayListPage } from './gateway-list-page'
 import { HorizontalPodAutoscalerListPage } from './horizontalpodautoscaler-list-page'
-import { HTTPRouteListPage } from './httproute-list-page'
 import { IngressListPage } from './ingress-list-page'
 import { JobListPage } from './job-list-page'
 import { NamespaceListPage } from './namespace-list-page'
@@ -26,12 +26,21 @@ import { StatefulSetListPage } from './statefulset-list-page'
 
 export function ResourceList() {
   const { resource } = useParams()
+  const { isLoading, listDefinitions } = usePluginRuntime()
 
   usePageTitle(
     resource
       ? resource.charAt(0).toUpperCase() + resource.slice(1)
       : 'Resources'
   )
+
+  const pluginListDefinition = resource
+    ? listDefinitions.find(
+        (definition) =>
+          definition.resource.source === 'builtin' &&
+          definition.resource.resourceType === resource
+      )
+    : undefined
 
   switch (resource) {
     case 'pods':
@@ -64,15 +73,32 @@ export function ResourceList() {
       return <PVListPage />
     case 'crds':
       return <CRDListPage />
-    case 'gateways':
-      return <GatewayListPage />
-    case 'httproutes':
-      return <HTTPRouteListPage />
     case 'horizontalpodautoscalers':
       return <HorizontalPodAutoscalerListPage />
     case 'events':
       return <EventListPage />
     default:
+      if (isLoading) {
+        return (
+          <div className="p-6">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-muted-foreground">
+                  Loading plugin registry...
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )
+      }
+      if (pluginListDefinition) {
+        return (
+          <Navigate
+            replace
+            to={`/plugins/${pluginListDefinition.pluginId}/${pluginListDefinition.routerName}`}
+          />
+        )
+      }
       return <SimpleListPage resourceType={resource as ResourceType} />
   }
 }

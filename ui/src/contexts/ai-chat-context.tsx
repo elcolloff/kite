@@ -79,13 +79,18 @@ export function AIChatProvider({ children }: { children: ReactNode }) {
   const pageContext = useMemo<PageContext>(() => {
     const path = location.pathname
     const resource = params.resource || ''
+    const pluginRouter = params.routerName || ''
     const name = params.name || ''
     const namespace = params.namespace || ''
-    const normalizedKind = toSingularResource(resource)
+    const normalizedKind = toSingularResource(pluginRouter || resource)
 
     let page = 'overview'
     if (path === '/' || path === '/dashboard') {
       page = 'overview'
+    } else if (pluginRouter && name) {
+      page = 'plugin-detail'
+    } else if (pluginRouter) {
+      page = 'plugin-list'
     } else if (name) {
       page = `${normalizedKind}-detail`
     } else if (resource) {

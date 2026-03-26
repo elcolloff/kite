@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -50,6 +51,19 @@ func setupStatic(r *gin.Engine) {
 	}
 	// Apply cache control middleware for static assets
 	assetsGroup := r.Group(base + "/assets")
+	assetsGroup.Use(func(c *gin.Context) {
+		assetPath := strings.TrimPrefix(c.Request.URL.Path, base+"/assets")
+		if strings.HasPrefix(assetPath, "/plugins/") {
+			c.Params = append(c.Params, gin.Param{
+				Key:   "pluginAsset",
+				Value: strings.TrimPrefix(assetPath, "/plugins/"),
+			})
+			handlers.ServeInstalledPluginAsset(c)
+			c.Abort()
+			return
+		}
+		c.Next()
+	})
 	assetsGroup.Use(middleware.StaticCache())
 	assetsGroup.StaticFS("/", http.FS(assertsFS))
 	r.NoRoute(func(c *gin.Context) {
@@ -173,10 +187,20 @@ func setupAPIRouter(r *gin.RouterGroup, cm *cluster.ClusterManager) {
 			templateAPI.PUT("/:id", handlers.UpdateTemplate)
 			templateAPI.DELETE("/:id", handlers.DeleteTemplate)
 		}
+
+		pluginAPI := adminAPI.Group("/plugins")
+		{
+			pluginAPI.GET("/", handlers.ListInstalledPlugins)
+			pluginAPI.POST("/install", handlers.InstallPlugin)
+			pluginAPI.POST("/:pluginId/enable", handlers.EnableInstalledPlugin)
+			pluginAPI.POST("/:pluginId/disable", handlers.DisableInstalledPlugin)
+			pluginAPI.DELETE("/:pluginId", handlers.DeleteInstalledPlugin)
+		}
 	}
 
 	// API routes group (protected)
 	api := r.Group("/api/v1")
+	api.GET("/plugins/registry", authHandler.RequireAuth(), handlers.GetPluginRegistry)
 	api.GET("/clusters", authHandler.RequireAuth(), cm.GetClusters)
 	api.Use(authHandler.RequireAuth(), middleware.ClusterMiddleware(cm))
 	{

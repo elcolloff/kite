@@ -8,6 +8,7 @@ import { CRListPage } from './pages/cr-list-page'
 import { InitializationPage } from './pages/initialization'
 import { LoginPage } from './pages/login'
 import { Overview } from './pages/overview'
+import { PluginResourceRoute } from './pages/plugin-resource-route'
 import { ResourceDetail } from './pages/resource-detail'
 import { ResourceList } from './pages/resource-list'
 import { SettingsPage } from './pages/settings'
@@ -61,6 +62,18 @@ export const router = createBrowserRouter(
         {
           path: 'crds/:resource/:name',
           element: <ResourceDetail />,
+        },
+        {
+          path: 'plugins/:pluginId/:routerName',
+          element: <PluginResourceRoute />,
+        },
+        {
+          path: 'plugins/:pluginId/:routerName/:name',
+          element: <PluginResourceRoute />,
+        },
+        {
+          path: 'plugins/:pluginId/:routerName/:namespace/:name',
+          element: <PluginResourceRoute />,
         },
         {
           path: ':resource/:name',

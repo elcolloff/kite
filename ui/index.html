@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/icon.svg" />
+    <script>
+      ;(() => {
+        const base = window.__dynamic_base__ || ''
+        const imports = {
+          react: `${base}/assets/plugin-runtime/react.js`,
+          'react/jsx-runtime': `${base}/assets/plugin-runtime/react-jsx-runtime.js`,
+          'react-dom': `${base}/assets/plugin-runtime/react-dom.js`,
+          'react-dom/client': `${base}/assets/plugin-runtime/react-dom-client.js`,
+          'react-router-dom': `${base}/assets/plugin-runtime/react-router-dom.js`,
+          '@tanstack/react-query': `${base}/assets/plugin-runtime/tanstack-react-query.js`,
+          '@kite-dev/plugin-sdk': `${base}/assets/plugin-runtime/kite-dev-plugin-sdk.js`,
+        }
+        const script = document.createElement('script')
+        script.type = 'importmap'
+        script.textContent = JSON.stringify({ imports }).replace(/</g, '\\u003c')
+        document.currentScript.after(script)
+      })()
+    </script>
     <title>Kite</title>
   </head>
   <body>

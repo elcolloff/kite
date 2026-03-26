@@ -49,3 +49,7 @@ kite
 
 
 .gocache/
+
+**/node_modules/**
+ui/public/assets
+dist/

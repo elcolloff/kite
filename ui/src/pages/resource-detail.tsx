@@ -1,4 +1,5 @@
-import { useParams } from 'react-router-dom'
+import { usePluginRuntime } from '@/plugins/runtime-context'
+import { Navigate, useParams } from 'react-router-dom'
 
 import { ResourceType } from '@/types/api'
 import { usePageTitle } from '@/hooks/use-page-title'
@@ -33,11 +34,21 @@ function getResourceTypeName(resource: string): string {
 
 export function ResourceDetail() {
   const { resource, namespace, name } = useParams()
+  const { detailDefinitions, isLoading } = usePluginRuntime()
 
   const resourceTypeName = resource ? getResourceTypeName(resource) : ''
   const pageTitle =
     resource && name ? `${name} (${resourceTypeName})` : 'Resource'
   usePageTitle(pageTitle)
+
+  const pluginDetailDefinition =
+    resource && name
+      ? detailDefinitions.find(
+          (definition) =>
+            definition.resource.source === 'builtin' &&
+            definition.resource.resourceType === resource
+        )
+      : undefined
 
   if (!resource || !name) {
     return (
@@ -73,6 +84,32 @@ export function ResourceDetail() {
     case 'services':
       return <ServiceDetail namespace={namespace!} name={name} />
     default:
+      if (isLoading) {
+        return (
+          <div className="p-6">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-muted-foreground">
+                  Loading plugin registry...
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )
+      }
+      if (pluginDetailDefinition) {
+        const routeBase = `/plugins/${pluginDetailDefinition.pluginId}/${pluginDetailDefinition.routerName}`
+        return (
+          <Navigate
+            replace
+            to={
+              namespace
+                ? `${routeBase}/${namespace}/${name}`
+                : `${routeBase}/${name}`
+            }
+          />
+        )
+      }
       return (
         <SimpleResourceDetail
           resourceType={resource as ResourceType}

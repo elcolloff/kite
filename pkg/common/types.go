@@ -72,3 +72,52 @@ type NodeListWithMetrics struct {
 	// +optional
 	metav1.ListMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 }
+
+type PluginRegistryEntry struct {
+	ID      string                      `json:"id"`
+	Name    string                      `json:"name"`
+	Version string                      `json:"version"`
+	Enabled bool                        `json:"enabled"`
+	Entry   string                      `json:"entry"`
+	Lists   []PluginRegistryListEntry   `json:"lists,omitempty"`
+	Details []PluginRegistryDetailEntry `json:"details,omitempty"`
+}
+
+type PluginManifest struct {
+	SchemaVersion    string                      `json:"schemaVersion"`
+	ID               string                      `json:"id"`
+	Name             string                      `json:"name"`
+	Version          string                      `json:"version"`
+	SDKVersionRange  string                      `json:"sdkVersionRange"`
+	HostVersionRange string                      `json:"hostVersionRange"`
+	Entry            string                      `json:"entry"`
+	Lists            []PluginRegistryListEntry   `json:"lists,omitempty"`
+	Details          []PluginRegistryDetailEntry `json:"details,omitempty"`
+}
+
+type PluginRegistryResource struct {
+	Source       string `json:"source"`
+	ResourceType string `json:"resourceType,omitempty"`
+	CRDName      string `json:"crdName,omitempty"`
+	Kind         string `json:"kind,omitempty"`
+	Scope        string `json:"scope"`
+}
+
+type PluginRegistryMenu struct {
+	GroupID string `json:"groupId"`
+	Title   string `json:"title"`
+	Icon    string `json:"icon,omitempty"`
+	After   string `json:"after,omitempty"`
+}
+
+type PluginRegistryListEntry struct {
+	RouterName string                 `json:"routerName"`
+	Title      string                 `json:"title"`
+	Resource   PluginRegistryResource `json:"resource"`
+	Menu       PluginRegistryMenu     `json:"menu"`
+}
+
+type PluginRegistryDetailEntry struct {
+	RouterName string                 `json:"routerName"`
+	Resource   PluginRegistryResource `json:"resource"`
+}

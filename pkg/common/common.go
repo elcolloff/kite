@@ -23,11 +23,12 @@ const (
 )
 
 var (
-	Port            = "8080"
-	JwtSecret       = "kite-default-jwt-secret-key-change-in-production"
-	EnableAnalytics = false
-	Host            = ""
-	Base            = ""
+	Port             = "8080"
+	JwtSecret        = "kite-default-jwt-secret-key-change-in-production"
+	EnableAnalytics  = false
+	Host             = ""
+	Base             = ""
+	PluginSDKVersion = "0.1.0"
 
 	NodeTerminalImage    = "busybox:latest"
 	KubectlTerminalImage = "zzde/kubectl:latest"

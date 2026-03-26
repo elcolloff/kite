@@ -39,6 +39,10 @@ export default defineConfig({
         changeOrigin: true,
         target: 'http://localhost:8080',
       },
+      [devBase + '/assets/plugins/']: {
+        target: 'http://localhost:8080',
+        rewriteWsOrigin: true,
+      },
       '^/ws/.*': {
         target: 'ws://localhost:8080',
         ws: true,
@@ -47,9 +51,12 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: [
+      {
+        find: '@',
+        replacement: path.resolve(__dirname, './src'),
+      },
+    ],
   },
   worker: {
     format: 'es',

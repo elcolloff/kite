@@ -1,3 +1,4 @@
+import { usePluginRuntime } from '@/plugins/runtime-context'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -18,6 +19,7 @@ interface BreadcrumbSegment {
 export function DynamicBreadcrumb() {
   const location = useLocation()
   const { t } = useTranslation()
+  const { getListDefinition } = usePluginRuntime()
 
   const generateBreadcrumbs = (): BreadcrumbSegment[] => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
@@ -36,8 +38,6 @@ export function DynamicBreadcrumb() {
       secrets: t('nav.secrets'),
       ingresses: t('nav.ingresses'),
       networkpolicies: t('nav.networkpolicies'),
-      gateways: t('nav.gateways'),
-      httproutes: t('nav.httproutes'),
       jobs: t('nav.jobs'),
       daemonsets: t('nav.daemonsets'),
       statefulsets: t('nav.statefulsets'),
@@ -56,6 +56,39 @@ export function DynamicBreadcrumb() {
       label: resourceLabels[label] || label,
       href,
     })
+
+    if (pathSegments[0] === 'plugins' && pathSegments.length >= 3) {
+      const pluginId = pathSegments[1]
+      const routerName = pathSegments[2]
+      const listDefinition = getListDefinition(pluginId, routerName)
+      const routeBase = `/plugins/${pluginId}/${routerName}`
+      const listLabel =
+        listDefinition?.menu.title || listDefinition?.title || routerName
+
+      breadcrumbs.push({
+        label: t('sidebar.groups.plugin'),
+      })
+      breadcrumbs.push({
+        label: listLabel,
+        href: pathSegments.length > 3 ? routeBase : undefined,
+      })
+
+      if (pathSegments.length === 5) {
+        breadcrumbs.push({
+          label: pathSegments[3],
+          href: routeBase,
+        })
+        breadcrumbs.push({
+          label: pathSegments[4],
+        })
+      } else if (pathSegments.length === 4) {
+        breadcrumbs.push({
+          label: pathSegments[3],
+        })
+      }
+
+      return breadcrumbs
+    }
 
     // Helper function to get safe link for segments
     const getSafeLink = (index: number): string | undefined => {

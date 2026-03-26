@@ -118,12 +118,14 @@ func RegisterRoutes(group *gin.RouterGroup) {
 		otherGroup.GET("/_all/:name", crHandler.Get)
 		otherGroup.GET("/_all/:name/describe", crHandler.Describe)
 		otherGroup.PUT("/_all/:name", crHandler.Update)
+		otherGroup.PATCH("/_all/:name", crHandler.Patch)
 		otherGroup.DELETE("/_all/:name", crHandler.Delete)
 
 		otherGroup.GET("/:namespace", crHandler.List)
 		otherGroup.GET("/:namespace/:name", crHandler.Get)
 		otherGroup.GET("/:namespace/:name/describe", crHandler.Describe)
 		otherGroup.PUT("/:namespace/:name", crHandler.Update)
+		otherGroup.PATCH("/:namespace/:name", crHandler.Patch)
 		otherGroup.DELETE("/:namespace/:name", crHandler.Delete)
 	}
 }
