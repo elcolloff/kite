@@ -1,0 +1,34 @@
+{
+  "name": "@kite-dev/plugin-sdk",
+  "version": "0.1.1",
+  "type": "module",
+  "main": "./src/host-runtime.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/host-runtime.ts"
+    },
+    "./host-runtime": "./src/host-runtime.ts",
+    "./build-runtime": "./scripts/build-runtime.mjs"
+  },
+  "files": [
+    "src",
+    "scripts"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "pnpm run build"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.99.2",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0",
+    "react-router-dom": ">=7.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "~5.9.3"
+  }
+}

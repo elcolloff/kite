@@ -13,6 +13,7 @@ import { Overview } from './pages/overview'
 import { ResourceDetail } from './pages/resource-detail'
 import { ResourceList } from './pages/resource-list'
 import { SettingsPage } from './pages/settings'
+import { PluginRouteRenderer } from './plugins/plugin-route-renderer'
 
 const subPath = getSubPath()
 
@@ -73,6 +74,14 @@ export const router = createBrowserRouter(
         {
           path: 'charts/:repository/:name',
           element: <HelmChartDetailPage />,
+        },
+        {
+          path: 'plugins/:pluginId',
+          element: <PluginRouteRenderer />,
+        },
+        {
+          path: 'plugins/:pluginId/*',
+          element: <PluginRouteRenderer />,
         },
         {
           path: 'crds/:resource/:namespace/:name',

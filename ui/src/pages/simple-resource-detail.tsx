@@ -16,6 +16,7 @@ import {
 
 export function SimpleResourceDetail<T extends ResourceType>(props: {
   resourceType: T
+  resourceLabel?: string
   name: string
   namespace?: string
 }) {
@@ -28,7 +29,7 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
     namespace
   )
 
-  const resourceLabel = getResourceLabel(resourceType)
+  const resourceLabel = props.resourceLabel || getResourceLabel(resourceType)
 
   const handleSaveYaml = async (content: ResourceTypeMap[T]) => {
     await updateResource(resourceType, name, namespace, content)

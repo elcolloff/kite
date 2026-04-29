@@ -59,6 +59,9 @@ var (
 	// ConfigFilePath is the path to the external config file (set via KITE_CONFIG_FILE env)
 	ConfigFilePath = ""
 
+	// PluginsFilePath is the path to the static plugin config file.
+	PluginsFilePath = "plugins.json"
+
 	// ManagedSections tracks which configuration sections are managed by the config file.
 	// Keys: "clusters", "oauth", "ldap", "rbac", "superUser"
 	ManagedSections = map[string]bool{}

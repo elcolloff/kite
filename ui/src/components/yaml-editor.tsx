@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAppearance } from './appearance-provider'
 import { ErrorBoundary } from './error-boundary'
 
-interface YamlEditorProps<T extends ResourceType> {
+export interface YamlEditorProps<T extends ResourceType = ResourceType> {
   /** The YAML content to edit */
   value: string
   /** Whether the editor is in read-only mode by default */

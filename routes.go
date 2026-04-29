@@ -15,6 +15,7 @@ import (
 	"github.com/zxh326/kite/pkg/images"
 	"github.com/zxh326/kite/pkg/metrics"
 	"github.com/zxh326/kite/pkg/middleware"
+	"github.com/zxh326/kite/pkg/plugins"
 	"github.com/zxh326/kite/pkg/proxy"
 	"github.com/zxh326/kite/pkg/rbac"
 	"github.com/zxh326/kite/pkg/resources"
@@ -130,6 +131,8 @@ func registerAdminRoutes(r *gin.RouterGroup, authHandler *auth.AuthHandler, cm *
 func registerProtectedRoutes(r *gin.RouterGroup, authHandler *auth.AuthHandler, cm *cluster.ClusterManager, helmChartsHandler *helm.HelmChartHandler) {
 	api := r.Group("/api/v1")
 	api.GET("/clusters", authHandler.RequireAuth(), cm.GetClusters)
+	api.GET("/plugins", authHandler.RequireAuth(), plugins.GetPlugins)
+	api.GET("/plugins/:pluginID/entry.js", authHandler.RequireAuth(), plugins.GetPluginEntry)
 	api.Use(authHandler.RequireAuth(), middleware.ClusterMiddleware(cm))
 
 	api.GET("/overview", system.GetOverview)

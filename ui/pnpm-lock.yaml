@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@kite-dev/plugin-sdk': link:../kite-plugin-sdk
+
 importers:
 
   .:
@@ -153,6 +156,9 @@ importers:
       '@ianvs/prettier-plugin-sort-imports':
         specifier: ^4.7.1
         version: 4.7.1(prettier@3.8.3)
+      '@kite-dev/plugin-sdk':
+        specifier: link:../kite-plugin-sdk
+        version: link:../kite-plugin-sdk
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1

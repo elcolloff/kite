@@ -4,9 +4,15 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from 'react'
 import * as React from 'react'
+import {
+  usePluginRegistry,
+  type RuntimePluginSidebarGroup,
+  type RuntimePluginSidebarItem,
+} from '@/plugins/plugin-registry'
 import { type Icon, type IconProps } from '@tabler/icons-react'
 
 import { SidebarConfig, SidebarGroup, SidebarItem } from '@/types/sidebar'
@@ -34,6 +40,98 @@ function toggleGroupField(
   return groups.map((g) =>
     g.id === groupId ? { ...g, [field]: !g[field] } : g
   )
+}
+
+const pluginGroupKeyMap = {
+  workloads: 'sidebar.groups.workloads',
+  traffic: 'sidebar.groups.traffic',
+  storage: 'sidebar.groups.storage',
+  config: 'sidebar.groups.config',
+  security: 'sidebar.groups.security',
+  other: 'sidebar.groups.other',
+} as const
+
+function getGroupId(groupKey: string) {
+  return groupKey.toLowerCase().replace(/\./g, '-').replace(/\s+/g, '-')
+}
+
+function getPluginGroupKey(pluginId: string, groupId: string) {
+  return `${pluginId}:${groupId}`
+}
+
+function getPluginGroupId(group: RuntimePluginSidebarGroup) {
+  return getGroupId(`plugin.${group.pluginId}.${group.id}`)
+}
+
+function mergePluginSidebarItems(
+  config: SidebarConfig | null,
+  pluginGroups: RuntimePluginSidebarGroup[],
+  pluginItems: RuntimePluginSidebarItem[]
+): SidebarConfig | null {
+  if (!config || pluginItems.length === 0) {
+    return config
+  }
+
+  const groups = config.groups.map((group) => ({
+    ...group,
+    items: [...group.items],
+  }))
+  const groupsById = new Map(groups.map((group) => [group.id, group]))
+  const pluginGroupsByKey = new Map(
+    pluginGroups.map((group) => [
+      getPluginGroupKey(group.pluginId, group.id),
+      group,
+    ])
+  )
+
+  pluginItems.forEach((item, index) => {
+    const groupName = item.group || 'other'
+    const builtinGroupKey =
+      pluginGroupKeyMap[groupName as keyof typeof pluginGroupKeyMap]
+    const pluginGroup = builtinGroupKey
+      ? undefined
+      : pluginGroupsByKey.get(getPluginGroupKey(item.pluginId, groupName))
+    if (!builtinGroupKey && !pluginGroup) {
+      return
+    }
+
+    const groupId = builtinGroupKey
+      ? getGroupId(builtinGroupKey)
+      : getPluginGroupId(pluginGroup!)
+    let group = groupsById.get(groupId)
+
+    if (!group) {
+      const groupKey = builtinGroupKey || pluginGroup!.title
+      group = {
+        id: groupId,
+        nameKey: groupKey,
+        items: [],
+        visible: true,
+        collapsed: false,
+        order: pluginGroup?.order ?? groups.length,
+      }
+      groups.push(group)
+      groupsById.set(group.id, group)
+    }
+
+    const sidebarItem: SidebarItem = {
+      id: item.itemId,
+      titleKey: item.title,
+      url: item.path,
+      icon: item.icon || 'IconBox',
+      visible: true,
+      pinned: false,
+      order: item.order ?? 1000 + index,
+    }
+
+    group.items.push(sidebarItem)
+  })
+
+  return {
+    ...config,
+    groups,
+    groupOrder: groups.map((group) => group.id),
+  }
 }
 
 interface SidebarConfigContextType {
@@ -88,6 +186,15 @@ export const SidebarConfigProvider: React.FC<SidebarConfigProviderProps> = ({
   const [isLoading, setIsLoading] = useState(true)
   const [hasUpdate, setHasUpdate] = useState(false)
   const { user } = useAuth()
+  const {
+    sidebarGroups: pluginSidebarGroups,
+    sidebarItems: pluginSidebarItems,
+  } = usePluginRegistry()
+  const mergedConfig = useMemo(
+    () =>
+      mergePluginSidebarItems(config, pluginSidebarGroups, pluginSidebarItems),
+    [config, pluginSidebarGroups, pluginSidebarItems]
+  )
 
   const loadConfig = useCallback(async () => {
     if (user && user.sidebar_preference && user.sidebar_preference != '') {
@@ -411,7 +518,7 @@ export const SidebarConfigProvider: React.FC<SidebarConfigProviderProps> = ({
   }, [loadConfig])
 
   const value: SidebarConfigContextType = {
-    config,
+    config: mergedConfig,
     isLoading,
     hasUpdate,
     updateConfig,

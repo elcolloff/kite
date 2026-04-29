@@ -1,9 +1,10 @@
 # Makefile for Kite project
-.PHONY: help dev build clean test docker-build docker-run frontend backend install deps e2e-install e2e-install-browser e2e-kind-up e2e-kind-down e2e-stop-app e2e-setup-ldap e2e-setup-dex e2e-run e2e-run-headed e2e-test e2e-test-headed
+.PHONY: help dev build clean test docker-build docker-run frontend backend install deps publish-sdk e2e-install e2e-install-browser e2e-kind-up e2e-kind-down e2e-stop-app e2e-setup-ldap e2e-setup-dex e2e-run e2e-run-headed e2e-test e2e-test-headed
 
 # Variables
 BINARY_NAME=kite
 UI_DIR=ui
+PLUGIN_SDK_DIR=kite-plugin-sdk
 E2E_DIR=e2e
 DOCKER_IMAGE=kite
 DOCKER_TAG=latest
@@ -16,6 +17,7 @@ E2E_LDAP_PORT ?= 3389
 E2E_DEX_CONTAINER ?= kite-e2e-dex
 E2E_OAUTH_PORT ?= 5556
 SPEC ?=
+NPM_PUBLISH_FLAGS ?= --access public --no-git-checks
 
 # Version information
 VERSION=$(shell scripts/get-version.sh)
@@ -90,6 +92,11 @@ package-binaries: ## Package each kite binary file separately
 		fi; \
 	done
 	@echo "✅ All kite binaries packaged successfully!"
+
+publish-sdk: ## Publish @kite-dev/plugin-sdk to npm
+	cd $(PLUGIN_SDK_DIR) && pnpm install
+	cd $(PLUGIN_SDK_DIR) && pnpm run build
+	cd $(PLUGIN_SDK_DIR) && pnpm publish $(NPM_PUBLISH_FLAGS)
 
 frontend: static ## Build frontend only
 

@@ -1,3 +1,4 @@
+import { usePluginRegistry } from '@/plugins/plugin-registry'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -19,6 +20,7 @@ interface BreadcrumbSegment {
 export function DynamicBreadcrumb() {
   const location = useLocation()
   const { t } = useTranslation()
+  const { plugins } = usePluginRegistry()
 
   const generateBreadcrumbs = (): BreadcrumbSegment[] => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
@@ -76,16 +78,34 @@ export function DynamicBreadcrumb() {
     }
 
     const shouldHideLastSegment =
-      pathSegments[0] === 'crds'
-        ? pathSegments.length >= 3
-        : pathSegments.length >= 2
+      pathSegments[0] === 'plugins'
+        ? pathSegments.length >= 4
+        : pathSegments[0] === 'crds'
+          ? pathSegments.length >= 3
+          : pathSegments.length >= 2
     const visibleSegments = shouldHideLastSegment
       ? pathSegments.slice(0, -1)
       : pathSegments
 
     // Generate breadcrumbs for each visible path segment
     visibleSegments.forEach((segment, index) => {
-      const href = getSafeLink(index)
+      const isPluginContainerSegment =
+        pathSegments[0] === 'plugins' && index <= 1
+      const href = isPluginContainerSegment ? undefined : getSafeLink(index)
+      const plugin =
+        index === 1 ? plugins.find((item) => item.id === segment) : undefined
+
+      if (pathSegments[0] === 'plugins') {
+        if (index === 0) {
+          breadcrumbs.push({ label: 'Plugins' })
+        } else if (index === 1) {
+          breadcrumbs.push({ label: plugin?.name || segment })
+        } else {
+          breadcrumbs.push(createResourceBreadcrumb(segment, href))
+        }
+        return
+      }
+
       breadcrumbs.push(
         index === 0
           ? createResourceBreadcrumb(segment, href)
