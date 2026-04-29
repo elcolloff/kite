@@ -2,6 +2,11 @@
   "name": "@kite-dev/plugin-sdk",
   "version": "0.1.1",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kite-org/kite.git",
+    "directory": "kite-plugin-sdk"
+  },
   "main": "./src/host-runtime.ts",
   "types": "./src/index.ts",
   "exports": {

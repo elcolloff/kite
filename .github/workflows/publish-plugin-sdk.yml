@@ -1,0 +1,55 @@
+name: Publish Plugin SDK
+
+on:
+  push:
+    tags:
+      - "plugin-sdk-v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  NODE_VERSION: "24"
+
+jobs:
+  publish:
+    name: Publish @kite-dev/plugin-sdk
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'kite-org' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+          cache-dependency-path: kite-plugin-sdk/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: kite-plugin-sdk
+        run: pnpm install --frozen-lockfile
+
+      - name: Check tag version
+        if: ${{ startsWith(github.ref, 'refs/tags/plugin-sdk-v') }}
+        working-directory: kite-plugin-sdk
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#plugin-sdk-v}"
+          test "$PACKAGE_VERSION" = "$TAG_VERSION"
+
+      - name: Build
+        working-directory: kite-plugin-sdk
+        run: pnpm run build
+
+      - name: Publish
+        working-directory: kite-plugin-sdk
+        run: npm publish --access public
