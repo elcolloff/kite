@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -344,11 +343,7 @@ func anthropicMessageToAssistantMessageParam(message anthropic.Message) anthropi
 				blocks = append(blocks, anthropic.NewTextBlock(b.Text))
 			}
 		case anthropic.ToolUseBlock:
-			input := map[string]interface{}{}
-			if len(b.Input) > 0 {
-				_ = json.Unmarshal(b.Input, &input)
-			}
-			blocks = append(blocks, anthropic.NewToolUseBlock(b.ID, input, b.Name))
+			blocks = append(blocks, anthropic.NewToolUseBlock(b.ID, b.Input, b.Name))
 		}
 	}
 	return anthropic.NewAssistantMessage(blocks...)
