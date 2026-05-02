@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -88,7 +89,7 @@ func (a *Agent) runAnthropicConversation(
 			},
 		})
 
-		_, messageContent, thinkingContent, streamedToolCalls, err := consumeAnthropicStreamingResponse(stream, sendEvent)
+		message, messageContent, thinkingContent, streamedToolCalls, err := consumeAnthropicStreamingResponse(stream, sendEvent)
 		if err != nil {
 			klog.Errorf("AI generation error: %v", err)
 			sendEvent(SSEEvent{Event: "error", Data: map[string]string{"message": fmt.Sprintf("AI error: %v", err)}})
@@ -104,10 +105,14 @@ func (a *Agent) runAnthropicConversation(
 			return
 		}
 
+		// Append the full assistant message once (preserving thinking blocks and all
+		// tool_use blocks) before processing tool results. Anthropic requires that
+		// any thinking content returned by the model is passed back on the next turn.
+		messages = append(messages, anthropicMessageToAssistantMessageParam(message))
+
 		toolResults := make([]anthropic.ContentBlockParamUnion, 0, len(streamedToolCalls))
 
 		for _, tc := range streamedToolCalls {
-			messages = append(messages, streamedToolCallToAnthropicAssistantMessage(tc))
 
 			toolName := tc.Name
 			args, err := parseToolCallArguments(tc.Arguments)
@@ -322,12 +327,29 @@ func anthropicMessageThinking(message anthropic.Message) string {
 	return thinkingBuilder.String()
 }
 
-func streamedToolCallToAnthropicAssistantMessage(tc streamedToolCall) anthropic.MessageParam {
-	input := map[string]interface{}{}
-	if args, err := parseToolCallArguments(tc.Arguments); err == nil {
-		input = args
+// anthropicMessageToAssistantMessageParam converts the full assistant Message
+// returned by the API into a MessageParam, preserving all content blocks
+// (including thinking and redacted_thinking blocks). Anthropic requires that
+// any thinking content from a previous turn is passed back verbatim.
+func anthropicMessageToAssistantMessageParam(message anthropic.Message) anthropic.MessageParam {
+	blocks := make([]anthropic.ContentBlockParamUnion, 0, len(message.Content))
+	for _, block := range message.Content {
+		switch b := block.AsAny().(type) {
+		case anthropic.ThinkingBlock:
+			blocks = append(blocks, anthropic.NewThinkingBlock(b.Signature, b.Thinking))
+		case anthropic.RedactedThinkingBlock:
+			blocks = append(blocks, anthropic.NewRedactedThinkingBlock(b.Data))
+		case anthropic.TextBlock:
+			if b.Text != "" {
+				blocks = append(blocks, anthropic.NewTextBlock(b.Text))
+			}
+		case anthropic.ToolUseBlock:
+			input := map[string]interface{}{}
+			if len(b.Input) > 0 {
+				_ = json.Unmarshal(b.Input, &input)
+			}
+			blocks = append(blocks, anthropic.NewToolUseBlock(b.ID, input, b.Name))
+		}
 	}
-	return anthropic.NewAssistantMessage(
-		anthropic.NewToolUseBlock(tc.ID, input, tc.Name),
-	)
+	return anthropic.NewAssistantMessage(blocks...)
 }
