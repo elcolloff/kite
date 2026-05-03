@@ -1,5 +1,8 @@
-type ComponentType<P = unknown> = (props: P) => any
-type ReactNode = unknown
+import type {
+  ComponentPropsWithoutRef,
+  ComponentType,
+  ReactNode,
+} from 'react'
 
 export interface PluginManifest {
   schemaVersion: 1
@@ -108,6 +111,22 @@ export interface ResourceListOptions {
   reduce?: boolean
 }
 
+export interface ResourceMetadata {
+  name?: string
+  namespace?: string
+  creationTimestamp?: string
+  uid?: string
+  resourceVersion?: string
+  labels?: Record<string, string>
+  annotations?: Record<string, string>
+  ownerReferences?: Array<{
+    apiVersion?: string
+    kind?: string
+    name?: string
+    uid?: string
+  }>
+}
+
 export interface ResourceTableProps<T = unknown> {
   resourceName: string
   resourceType?: string
@@ -120,12 +139,47 @@ export interface ResourceTableProps<T = unknown> {
   defaultHiddenColumns?: string[]
 }
 
+export interface DataTableCellContext<T> {
+  row: T
+  value: unknown
+  index: number
+}
+
+export interface DataTableColumn<T = unknown> {
+  id?: string
+  header: ReactNode
+  accessorKey?: keyof T & string
+  accessorFn?: (row: T) => unknown
+  cell?: (context: DataTableCellContext<T>) => ReactNode
+  align?: 'left' | 'center' | 'right'
+  className?: string
+  headerClassName?: string
+  enableSorting?: boolean
+}
+
+export interface DataTableProps<T = unknown> {
+  data: T[]
+  columns: DataTableColumn<T>[]
+  isLoading?: boolean
+  rowKey?: (row: T, index: number) => string
+  emptyText?: ReactNode
+  loadingText?: ReactNode
+  emptyState?: ReactNode
+  totalRowCount?: number
+  filteredRowCount?: number
+  searchQuery?: string
+  maxBodyHeightClassName?: string
+  fitViewportHeight?: boolean
+  className?: string
+}
+
 export interface YamlEditorProps<T = unknown> {
   value: string
   readOnly?: boolean
   showControls?: boolean
   title?: string
   minHeight?: number
+  multipleDocuments?: boolean
   onChange?: (value: string) => void
   onSave?: (value: T) => void
   onCancel?: () => void
@@ -140,11 +194,121 @@ export interface SimpleResourceDetailProps {
   namespace?: string
 }
 
+export interface ResourceDetailShellContext<T = unknown> {
+  resource: T
+  yamlContent: string
+  setYamlContent(value: string): void
+  refreshKey: number
+  isSavingYaml: boolean
+  onRefresh(): Promise<unknown>
+}
+
+export interface ResourceDetailShellTab<T = unknown> {
+  value: string
+  label: ReactNode
+  content: ReactNode | ((context: ResourceDetailShellContext<T>) => ReactNode)
+}
+
+export interface ResourceDetailShellProps<T = unknown> {
+  resourceType?: string
+  resourceLabel: string
+  name: string
+  namespace?: string
+  data: T | undefined
+  isLoading: boolean
+  error: Error | unknown | null
+  onRefresh(): Promise<unknown>
+  onSaveYaml?: (content: T) => Promise<unknown>
+  overview: ReactNode | ((context: ResourceDetailShellContext<T>) => ReactNode)
+  preYamlTabs?: ResourceDetailShellTab<T>[]
+  extraTabs?: ResourceDetailShellTab<T>[]
+  headerActions?: ReactNode
+  yamlToolbar?: ReactNode | ((context: ResourceDetailShellContext<T>) => ReactNode)
+  loadingMessage?: string
+  yamlTabLabel?: ReactNode
+  showDelete?: boolean
+}
+
+export interface ResourceOverviewField {
+  label: ReactNode
+  value: ReactNode
+  mono?: boolean
+  truncate?: boolean
+}
+
+export interface ResourceOverviewProps {
+  resourceType: string
+  name: string
+  namespace?: string
+  metadata?: ResourceMetadata
+  fields?: ResourceOverviewField[]
+  children?: ReactNode
+}
+
+export interface ResponsiveTabItem {
+  value: string
+  label: ReactNode
+  content: ReactNode
+}
+
+export interface ResponsiveTabsProps {
+  tabs: ResponsiveTabItem[]
+  className?: string
+  stickyHeader?: ReactNode
+  stickyHeaderClassName?: string
+  tabsListClassName?: string
+}
+
+export type BadgeProps = ComponentPropsWithoutRef<'span'> & {
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline'
+  asChild?: boolean
+}
+
+export type ButtonProps = ComponentPropsWithoutRef<'button'> & {
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
+  asChild?: boolean
+}
+
+export type InputProps = ComponentPropsWithoutRef<'input'>
+export type TextareaProps = ComponentPropsWithoutRef<'textarea'>
+export type TableProps = ComponentPropsWithoutRef<'table'>
+export type TableHeaderProps = ComponentPropsWithoutRef<'thead'>
+export type TableBodyProps = ComponentPropsWithoutRef<'tbody'>
+export type TableFooterProps = ComponentPropsWithoutRef<'tfoot'>
+export type TableRowProps = ComponentPropsWithoutRef<'tr'>
+export type TableHeadProps = ComponentPropsWithoutRef<'th'>
+export type TableCellProps = ComponentPropsWithoutRef<'td'>
+export type TableCaptionProps = ComponentPropsWithoutRef<'caption'>
+export type CardProps = ComponentPropsWithoutRef<'div'>
+export type CardHeaderProps = ComponentPropsWithoutRef<'div'>
+export type CardTitleProps = ComponentPropsWithoutRef<'div'>
+export type CardDescriptionProps = ComponentPropsWithoutRef<'div'>
+export type CardContentProps = ComponentPropsWithoutRef<'div'>
+export type CardFooterProps = ComponentPropsWithoutRef<'div'>
+export type AlertProps = ComponentPropsWithoutRef<'div'> & {
+  variant?: 'default' | 'destructive'
+}
+export type AlertTitleProps = ComponentPropsWithoutRef<'h5'>
+export type AlertDescriptionProps = ComponentPropsWithoutRef<'div'>
+export type SkeletonProps = ComponentPropsWithoutRef<'div'>
+export type SeparatorProps = ComponentPropsWithoutRef<'div'> & {
+  orientation?: 'horizontal' | 'vertical'
+  decorative?: boolean
+}
+
+export interface NamespaceSelectorProps {
+  selectedNamespace?: string
+  handleNamespaceChange(namespace: string): void
+  showAll?: boolean
+}
+
 export interface KitePluginRuntime {
   version: string
   api: KiteAPI
   hooks: KitePluginHooks
-  components: KitePluginComponents
+  ui: KitePluginUI
+  resource: KitePluginResource
   navigate(to: string): void
 }
 
@@ -162,8 +326,39 @@ export interface KitePluginHooks {
   ): ResourceListQuery<T>
 }
 
-export interface KitePluginComponents {
+export interface KitePluginUI {
+  ResponsiveTabs: ComponentType<ResponsiveTabsProps>
+  Badge: ComponentType<BadgeProps>
+  Button: ComponentType<ButtonProps>
+  Input: ComponentType<InputProps>
+  Textarea: ComponentType<TextareaProps>
+  Table: ComponentType<TableProps>
+  TableHeader: ComponentType<TableHeaderProps>
+  TableBody: ComponentType<TableBodyProps>
+  TableFooter: ComponentType<TableFooterProps>
+  TableRow: ComponentType<TableRowProps>
+  TableHead: ComponentType<TableHeadProps>
+  TableCell: ComponentType<TableCellProps>
+  TableCaption: ComponentType<TableCaptionProps>
+  Card: ComponentType<CardProps>
+  CardHeader: ComponentType<CardHeaderProps>
+  CardTitle: ComponentType<CardTitleProps>
+  CardDescription: ComponentType<CardDescriptionProps>
+  CardContent: ComponentType<CardContentProps>
+  CardFooter: ComponentType<CardFooterProps>
+  Alert: ComponentType<AlertProps>
+  AlertTitle: ComponentType<AlertTitleProps>
+  AlertDescription: ComponentType<AlertDescriptionProps>
+  Skeleton: ComponentType<SkeletonProps>
+  Separator: ComponentType<SeparatorProps>
+}
+
+export interface KitePluginResource {
   ResourceTable: ComponentType<ResourceTableProps<unknown>>
+  DataTable: ComponentType<DataTableProps<unknown>>
   YamlEditor: ComponentType<YamlEditorProps>
   SimpleResourceDetail: ComponentType<SimpleResourceDetailProps>
+  ResourceDetailShell: ComponentType<ResourceDetailShellProps>
+  ResourceOverview: ComponentType<ResourceOverviewProps>
+  NamespaceSelector: ComponentType<NamespaceSelectorProps>
 }

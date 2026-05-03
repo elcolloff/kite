@@ -28,6 +28,8 @@ export interface YamlEditorProps<T extends ResourceType = ResourceType> {
   title?: string
   /** Minimum height of the editor */
   minHeight?: number
+  /** Whether the YAML content may contain multiple documents separated by --- */
+  multipleDocuments?: boolean
   /** Callback when YAML content changes */
   onChange?: (value: string) => void
   /** Callback when save is clicked */
@@ -46,6 +48,7 @@ export function YamlEditor<T extends ResourceType>({
   readOnly = false,
   showControls = true,
   title,
+  multipleDocuments = false,
   onChange,
   onSave,
   onCancel,
@@ -79,7 +82,11 @@ export function YamlEditor<T extends ResourceType>({
   useEffect(() => {
     // Immediate validation for isValidYaml state
     try {
-      yaml.load(editorValue)
+      if (multipleDocuments) {
+        yaml.loadAll(editorValue)
+      } else {
+        yaml.load(editorValue)
+      }
       setIsValidYaml(true)
       setValidationError('') // Clear error immediately when valid
     } catch (error) {
@@ -106,7 +113,7 @@ export function YamlEditor<T extends ResourceType>({
         clearTimeout(validationTimeoutRef.current)
       }
     }
-  }, [editorValue, t])
+  }, [editorValue, multipleDocuments, t])
 
   const handleEditorChange = (value: string | undefined) => {
     const newValue = value || ''

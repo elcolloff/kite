@@ -1,3 +1,4 @@
+import { ResourceDetailShell } from '@/pages/resource-detail-shell'
 import { SimpleResourceDetail } from '@/pages/simple-resource-detail'
 import { useQuery } from '@tanstack/react-query'
 
@@ -6,8 +7,37 @@ import { fetchResources } from '@/lib/api/core'
 import { withSubPath } from '@/lib/subpath'
 import { useCluster } from '@/hooks/use-cluster'
 import { ResourceTable } from '@/components/resource-table'
+import { ResourceOverview } from '@/components/resource-overview'
 import { YamlEditor } from '@/components/yaml-editor'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
+import { NamespaceSelector } from '@/components/selector/namespace-selector'
 
+import { DataTable } from './data-table'
 import type {
   CurrentCluster,
   KiteAPI,
@@ -65,10 +95,44 @@ export const kitePluginHostRuntime: KitePluginRuntime = {
     useResource: usePluginResource,
     useResources: usePluginResources,
   },
-  components: {
-    ResourceTable: ResourceTable as never,
-    YamlEditor: YamlEditor as never,
-    SimpleResourceDetail: SimpleResourceDetail as never,
+  ui: {
+    ResponsiveTabs,
+    Badge,
+    Button,
+    Input,
+    Textarea,
+    Table,
+    TableHeader,
+    TableBody,
+    TableFooter,
+    TableRow,
+    TableHead,
+    TableCell,
+    TableCaption,
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+    CardFooter,
+    Alert,
+    AlertTitle,
+    AlertDescription,
+    Skeleton,
+    Separator,
+  },
+  resource: {
+    ResourceTable:
+      ResourceTable as KitePluginRuntime['resource']['ResourceTable'],
+    DataTable,
+    YamlEditor,
+    SimpleResourceDetail:
+      SimpleResourceDetail as KitePluginRuntime['resource']['SimpleResourceDetail'],
+    ResourceDetailShell:
+      ResourceDetailShell as KitePluginRuntime['resource']['ResourceDetailShell'],
+    ResourceOverview:
+      ResourceOverview as KitePluginRuntime['resource']['ResourceOverview'],
+    NamespaceSelector,
   },
   navigate(to: string) {
     window.location.href = withSubPath(to)

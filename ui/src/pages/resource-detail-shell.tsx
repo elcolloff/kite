@@ -32,7 +32,7 @@ export interface ResourceDetailShellTab<T> {
 }
 
 interface ResourceDetailShellProps<T> {
-  resourceType: ResourceType
+  resourceType?: ResourceType
   resourceLabel: string
   name: string
   namespace?: string
@@ -265,7 +265,7 @@ export function ResourceDetailShell<T>({
                 <IconRefresh className="w-4 h-4" />
                 {t('common.actions.refresh')}
               </Button>
-              {showDescribe ? (
+              {showDescribe && resourceType ? (
                 <DescribeDialog
                   resourceType={resourceType}
                   namespace={namespace}
@@ -273,7 +273,7 @@ export function ResourceDetailShell<T>({
                 />
               ) : null}
               {headerActions}
-              {showDelete && (
+              {showDelete && resourceType && (
                 <Button
                   variant="destructive"
                   size="sm"
@@ -302,7 +302,7 @@ export function ResourceDetailShell<T>({
         }))}
       />
 
-      {showDelete && (
+      {showDelete && resourceType && (
         <ResourceDeleteConfirmationDialog
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}

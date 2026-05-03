@@ -1,6 +1,6 @@
 import { usePluginRegistry } from '@/plugins/plugin-registry'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, matchPath, useLocation } from 'react-router-dom'
 
 import { getResourceCatalogEntry } from '@/lib/resource-catalog'
 import {
@@ -20,7 +20,7 @@ interface BreadcrumbSegment {
 export function DynamicBreadcrumb() {
   const location = useLocation()
   const { t } = useTranslation()
-  const { plugins } = usePluginRegistry()
+  const { plugins, routes, sidebarItems } = usePluginRegistry()
 
   const generateBreadcrumbs = (): BreadcrumbSegment[] => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
@@ -77,6 +77,18 @@ export function DynamicBreadcrumb() {
       }
     }
 
+    const getPluginSafeLink = (index: number): string | undefined => {
+      const href = `/${pathSegments.slice(0, index + 1).join('/')}`
+      const hasRegisteredRoute = routes.some((item) =>
+        matchPath({ path: item.route.path, end: true }, href)
+      )
+      const hasRegisteredSidebarItem = sidebarItems.some(
+        (item) => item.path === href
+      )
+
+      return hasRegisteredRoute || hasRegisteredSidebarItem ? href : undefined
+    }
+
     const shouldHideLastSegment =
       pathSegments[0] === 'plugins'
         ? pathSegments.length >= 4
@@ -91,7 +103,12 @@ export function DynamicBreadcrumb() {
     visibleSegments.forEach((segment, index) => {
       const isPluginContainerSegment =
         pathSegments[0] === 'plugins' && index <= 1
-      const href = isPluginContainerSegment ? undefined : getSafeLink(index)
+      const href =
+        pathSegments[0] === 'plugins'
+          ? isPluginContainerSegment
+            ? undefined
+            : getPluginSafeLink(index)
+          : getSafeLink(index)
       const plugin =
         index === 1 ? plugins.find((item) => item.id === segment) : undefined
 

@@ -1,6 +1,6 @@
 {
   "name": "@kite-dev/plugin-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "repository": {
     "type": "git",
@@ -13,6 +13,18 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/host-runtime.ts"
+    },
+    "./core": {
+      "types": "./src/core.ts",
+      "default": "./src/core.ts"
+    },
+    "./ui": {
+      "types": "./src/ui.ts",
+      "default": "./src/ui.ts"
+    },
+    "./resource": {
+      "types": "./src/resource.ts",
+      "default": "./src/resource.ts"
     },
     "./host-runtime": "./src/host-runtime.ts",
     "./build-runtime": "./scripts/build-runtime.mjs"

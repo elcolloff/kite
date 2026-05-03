@@ -100,7 +100,14 @@ export default defineConfig(({ command }) => ({
     modulePreload: true,
     rolldownOptions: {
       output: {
-        manualChunks: getManualChunk,
+        codeSplitting: {
+          includeDependenciesRecursively: false,
+          groups: [
+            {
+              name: getManualChunk,
+            },
+          ],
+        },
       },
     },
   },
