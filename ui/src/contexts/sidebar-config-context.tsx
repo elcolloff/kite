@@ -56,7 +56,11 @@ interface SidebarConfigContextType {
   removeCRDToGroup: (groupId: string, crdName: string) => void
   removeCustomGroup: (groupId: string) => void
   moveGroup: (groupId: string, direction: 'up' | 'down') => void
-  moveItemToGroup: (itemId: string, targetGroupId: string) => void
+  moveItemToGroup: (
+    itemId: string,
+    targetGroupId: string,
+    targetIndex?: number
+  ) => void
 }
 
 const SidebarConfigContext = createContext<
@@ -280,19 +284,21 @@ export const SidebarConfigProvider: React.FC<SidebarConfigProviderProps> = ({
   )
 
   const moveItemToGroup = useCallback(
-    (itemId: string, targetGroupId: string) => {
+    (itemId: string, targetGroupId: string, targetIndex?: number) => {
       if (!config) return
       if (!config.groups.some((group) => group.id === targetGroupId)) return
 
       let movedItem: SidebarItem | undefined
       let sourceGroupId = ''
+      let sourceIndex = -1
       const groupsWithoutItem = config.groups.map((group) => {
-        const nextItems = group.items.filter((item) => {
+        const nextItems = group.items.filter((item, index) => {
           if (item.id !== itemId) {
             return true
           }
           movedItem = item
           sourceGroupId = group.id
+          sourceIndex = index
           return false
         })
 
@@ -306,7 +312,7 @@ export const SidebarConfigProvider: React.FC<SidebarConfigProviderProps> = ({
         }
       })
 
-      if (!movedItem || sourceGroupId === targetGroupId) {
+      if (!movedItem) {
         return
       }
 
@@ -316,9 +322,18 @@ export const SidebarConfigProvider: React.FC<SidebarConfigProviderProps> = ({
           return group
         }
 
+        let insertIndex = targetIndex ?? group.items.length
+        if (sourceGroupId === targetGroupId && sourceIndex < insertIndex) {
+          insertIndex -= 1
+        }
+        insertIndex = Math.max(0, Math.min(insertIndex, group.items.length))
+
+        const items = [...group.items]
+        items.splice(insertIndex, 0, itemToMove)
+
         return {
           ...group,
-          items: [...group.items, { ...itemToMove, order: group.items.length }],
+          items: items.map((item, index) => ({ ...item, order: index })),
         }
       })
 

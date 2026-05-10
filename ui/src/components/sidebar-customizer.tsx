@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useSidebarConfig } from '@/contexts/sidebar-config-context'
 import {
@@ -50,6 +50,9 @@ const normalizeSidebarPreference = (value: string): string => {
   }
 }
 
+const DRAG_SCROLL_EDGE_SIZE = 64
+const DRAG_SCROLL_MAX_STEP = 12
+
 export function SidebarCustomizer({
   onOpenChange,
 }: {
@@ -89,6 +92,7 @@ export function SidebarCustomizer({
     moveGroup,
     moveItemToGroup,
   } = useSidebarConfig()
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
   const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null)
 
@@ -120,6 +124,34 @@ export function SidebarCustomizer({
     setDragOverGroupId(null)
   }
 
+  const handleDragAutoScroll = (event: DragEvent<HTMLElement>) => {
+    if (!draggedItemId) return
+
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const rect = container.getBoundingClientRect()
+    const distanceToTop = event.clientY - rect.top
+    const distanceToBottom = rect.bottom - event.clientY
+    let scrollDelta = 0
+
+    if (distanceToTop < DRAG_SCROLL_EDGE_SIZE) {
+      const progress =
+        (DRAG_SCROLL_EDGE_SIZE - Math.max(0, distanceToTop)) /
+        DRAG_SCROLL_EDGE_SIZE
+      scrollDelta = -Math.ceil(progress * progress * DRAG_SCROLL_MAX_STEP)
+    } else if (distanceToBottom < DRAG_SCROLL_EDGE_SIZE) {
+      const progress =
+        (DRAG_SCROLL_EDGE_SIZE - Math.max(0, distanceToBottom)) /
+        DRAG_SCROLL_EDGE_SIZE
+      scrollDelta = Math.ceil(progress * progress * DRAG_SCROLL_MAX_STEP)
+    }
+
+    if (scrollDelta !== 0) {
+      container.scrollTop += scrollDelta
+    }
+  }
+
   const handleGroupDragOver = (
     event: DragEvent<HTMLElement>,
     groupId: string
@@ -127,6 +159,7 @@ export function SidebarCustomizer({
     if (!draggedItemId) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
+    handleDragAutoScroll(event)
     setDragOverGroupId(groupId)
   }
 
@@ -146,6 +179,36 @@ export function SidebarCustomizer({
     const itemId = event.dataTransfer.getData('text/plain') || draggedItemId
     if (itemId) {
       moveItemToGroup(itemId, groupId)
+    }
+    handleItemDragEnd()
+  }
+
+  const handleItemDragOver = (
+    event: DragEvent<HTMLElement>,
+    groupId: string
+  ) => {
+    if (!draggedItemId) return
+    event.preventDefault()
+    event.stopPropagation()
+    event.dataTransfer.dropEffect = 'move'
+    handleDragAutoScroll(event)
+    setDragOverGroupId(groupId)
+  }
+
+  const handleItemDrop = (
+    event: DragEvent<HTMLElement>,
+    groupId: string,
+    itemIndex: number
+  ) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const itemId = event.dataTransfer.getData('text/plain') || draggedItemId
+    if (itemId) {
+      const rect = event.currentTarget.getBoundingClientRect()
+      const targetIndex =
+        itemIndex + (event.clientY > rect.top + rect.height / 2 ? 1 : 0)
+      moveItemToGroup(itemId, groupId, targetIndex)
     }
     handleItemDragEnd()
   }
@@ -265,7 +328,10 @@ export function SidebarCustomizer({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 max-h-[calc(100dvh-10rem)] sm:px-6">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-4 max-h-[calc(100dvh-10rem)] sm:px-6"
+        >
           <div className="space-y-6 pb-6">
             {pinnedItems.length > 0 && (
               <>
@@ -413,7 +479,7 @@ export function SidebarCustomizer({
                   <div
                     className={`grid gap-2 pl-4 ${group.collapsed ? 'hidden' : ''} ${!group.visible ? 'opacity-50 pointer-events-none' : ''}`}
                   >
-                    {group.items.map((item) => {
+                    {group.items.map((item, itemIndex) => {
                       const IconComponent = getIconComponent(item.icon)
                       const isHidden = config.hiddenItems.includes(item.id)
                       const isPinned = config.pinnedItems.includes(item.id)
@@ -432,6 +498,12 @@ export function SidebarCustomizer({
                               : 'bg-background',
                             draggedItemId === item.id && 'opacity-60'
                           )}
+                          onDragOver={(event) =>
+                            handleItemDragOver(event, group.id)
+                          }
+                          onDrop={(event) =>
+                            handleItemDrop(event, group.id, itemIndex)
+                          }
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             <Button
