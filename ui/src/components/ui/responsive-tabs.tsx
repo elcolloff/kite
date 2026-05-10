@@ -58,8 +58,8 @@ export function ResponsiveTabs({
 
   if (isMobile) {
     return (
-      <div className={cn('space-y-4', className)}>
-        <div className={stickyHeaderClassName}>
+      <div className={cn('flex min-h-0 flex-col gap-4', className)}>
+        <div className={cn('shrink-0', stickyHeaderClassName)}>
           {stickyHeader}
           <Select value={value} onValueChange={handleValueChange}>
             <SelectTrigger className="w-full">
@@ -76,7 +76,7 @@ export function ResponsiveTabs({
         </div>
 
         {currentTab && (
-          <div className={cn('space-y-4', contentClassName)}>
+          <div className={cn('min-h-0 flex-1', contentClassName)}>
             {currentTab.content}
           </div>
         )}
