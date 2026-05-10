@@ -164,7 +164,7 @@ function HelmReleaseResourceLink({
           {label}
         </button>
       </DialogTrigger>
-      <DialogContent className="!h-[calc(100dvh-1rem)] !max-w-[calc(100vw-1rem)] flex min-h-0 flex-col gap-0 p-0 md:!h-[80%] md:!max-w-[60%]">
+      <DialogContent className="!h-[calc(100dvh-1rem)] !max-w-[calc(100vw-1rem)] flex min-h-0 flex-col gap-0 p-0 md:!h-[80%] md:!max-w-[80%]">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-4 py-3 pr-14">
           <DialogTitle>{resource.kind}</DialogTitle>
           <a href={withSubPath(path)} target="_blank" rel="noopener noreferrer">
